@@ -198,8 +198,8 @@ func (self *connectManager) processInterfacePropertiesChanged(wpa *wpa_dbus.WPA,
 						self.context.connectDone <- true
 						return
 					} else if state == "disconnected" {
-						//self.context.phaseWaitForInterfaceConnected = false
-						//self.context.connectDone <- false
+						self.context.phaseWaitForInterfaceConnected = false
+						self.context.connectDone <- false
 						return
 					}
 				}
