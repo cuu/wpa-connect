@@ -1,4 +1,4 @@
-module github.com/mark2b/wpa-connect
+module github.com/cuu/wpa-connect
 
 go 1.15
 
