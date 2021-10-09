@@ -45,9 +45,7 @@ func (self *connectManager) Connect(ssid string, password string, timeout time.D
 						}
 						if e == nil {
 							_, exists := bssMap[ssid]
-							if err := self.connectToBSS(&wpa_dbus.BSSWPA{
-								SSID: ssid,
-							}, iface, password, !exists); err == nil {
+							if err := self.connectToBSS(&wpa_dbus.BSSWPA{SSID: ssid,}, iface, password, !exists); err == nil {
 								// Connected, save configuration
 								cli := wpa_cli.WPACli{NetInterface: self.NetInterface}
 								if err := cli.SaveConfig(); err == nil {
@@ -110,7 +108,7 @@ func (self *connectManager) connectToBSS(bss *wpa_dbus.BSSWPA, iface *wpa_dbus.I
 					}
 				} else {
 					if iface.ReadDisconnectReason(); iface.Error == nil {
-						e = errors.New(fmt.Sprintf("connection_failed, reason=%d", iface.DisconnectReason))
+						e = errors.New(fmt.Sprintf("disconnect_reason:%d",iface.DisconnectReason))
 					} else {
 						e = errors.New("connection_failed")
 					}
