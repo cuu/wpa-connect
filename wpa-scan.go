@@ -14,6 +14,7 @@ func (self *scanManager) Scan() (bssList []BSS, e error) {
 		if wpa.ReadInterface(self.NetInterface); wpa.Error == nil {
 			iface := wpa.Interface
 			iface.AddSignalsObserver()
+			self.Interface = iface
 			self.scanContext.phaseWaitForScanDone = true
 			if iface.Scan(); iface.Error == nil {
 				// Wait for scan_example done
@@ -63,6 +64,20 @@ func (self *scanManager) processScanDone(wpa *wpa_dbus.WPA, signal *dbus.Signal)
 	}
 }
 
+func (self *scanManager) GetInterfaceState() string {
+  if self.Interface != nil {
+	return self.Interface.ReadState().State
+  }
+  return "Unknown"
+}
+
+func (self *scanManager) GetCurrentBSSID() string {
+  if self.Interface != nil {
+	return self.Interface.ReadCurrentBSS().CurrentBSS.BSSID
+  }
+  return "Unknown"
+}
+
 func NewScanManager(netInterface string) *scanManager {
 	return &scanManager{NetInterface: netInterface}
 }
@@ -87,6 +102,7 @@ type scanContext struct {
 type scanManager struct {
 	scanContext  *scanContext
 	NetInterface string
+	Interface    *wpa_dbus.InterfaceWPA
 }
 
 var (
