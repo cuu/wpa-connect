@@ -73,10 +73,18 @@ func (self *scanManager) GetInterfaceState() string {
 
 func (self *scanManager) GetCurrentBSSID() string {
   if self.Interface != nil {
-	return self.Interface.ReadCurrentBSS().CurrentBSS.BSSID
+	return self.Interface.ReadCurrentBSS().CurrentBSS.ReadBSSID().BSSID
   }
   return "Unknown"
 }
+
+func (self *scanManager) GetCurrentSSID() string {
+  if self.Interface != nil {
+    return self.Interface.ReadCurrentBSS().CurrentBSS.ReadSSID().SSID
+  }
+  return "Unknown"
+}
+
 
 func NewScanManager(netInterface string) *scanManager {
 	return &scanManager{NetInterface: netInterface}

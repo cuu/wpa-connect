@@ -24,6 +24,8 @@ func (self *connectManager) Connect(ssid string, password string, timeout time.D
 			iface := wpa.Interface
 			iface.AddSignalsObserver()
 			self.context.phaseWaitForScanDone = true
+			self.Interface = iface
+
 			go func() {
 				time.Sleep(self.deadTime.Sub(time.Now()))
 				self.context.scanDone <- false
@@ -49,8 +51,7 @@ func (self *connectManager) Connect(ssid string, password string, timeout time.D
 								// Connected, save configuration
 								cli := wpa_cli.WPACli{NetInterface: self.NetInterface}
 								if err := cli.SaveConfig(); err == nil {
-									connectionInfo = ConnectionInfo{NetInterface: self.NetInterface, SSID: ssid,
-										IP4: self.context.ip4, IP6: self.context.ip6}
+									connectionInfo = ConnectionInfo{NetInterface: self.NetInterface, SSID: ssid, IP4: self.context.ip4, IP6: self.context.ip6}
 								} else {
 									e = err
 								}
@@ -101,12 +102,8 @@ func (self *connectManager) connectToBSS(bss *wpa_dbus.BSSWPA, iface *wpa_dbus.I
 		}()
 		if network.Select(); network.Error == nil {
 			if connected := <-self.context.connectDone; self.context.error == nil {
-				if connected {
-					if err := self.readNetAddress(); err == nil {
-					} else {
-						e = err
-					}
-				} else {
+				if connected == false {
+
 					if iface.ReadDisconnectReason(); iface.Error == nil {
 						e = errors.New(fmt.Sprintf("disconnect_reason:%d",iface.DisconnectReason))
 					} else {
@@ -141,7 +138,9 @@ func (self *connectManager) onSignal(wpa *wpa_dbus.WPA, signal *dbus.Signal) {
 	}
 }
 
-func (self *connectManager) readNetAddress() (e error) {
+func (self *connectManager) ReadNetAddress(timeout time.Duration) (e error) {
+	self.deadTime = time.Now().Add(timeout)
+
 	if netIface, err := net.InterfaceByName(self.NetInterface); err == nil {
 		for time.Now().Before(self.deadTime) && !self.context.hasIP() {
 			if addrs, err := netIface.Addrs(); err == nil {
@@ -206,8 +205,37 @@ func (self *connectManager) processInterfacePropertiesChanged(wpa *wpa_dbus.WPA,
 	}
 }
 
+
+func (self *connectManager) GetInterfaceState() string {
+  if self.Interface != nil {
+    return self.Interface.ReadState().State
+  }
+  return "Unknown"
+}
+
+func (self *connectManager) GetCurrentBSSID() string {
+  if self.Interface != nil {
+    return self.Interface.ReadCurrentBSS().CurrentBSS.ReadBSSID().BSSID
+  }
+  return "Unknown"
+}
+
+func (self *connectManager) GetCurrentSSID() string {
+  if self.Interface != nil {
+    return self.Interface.ReadCurrentBSS().CurrentBSS.ReadSSID().SSID
+  }
+  return "Unknown"
+}
+
 func (self *connectContext) hasIP() bool {
 	return self.ip4 != nil && self.ip6 != nil
+}
+
+func (self *connectManager) IPv4() net.IP {
+  if self.context.hasIP() {
+	return self.context.ip4
+  }
+  return nil
 }
 
 func NewConnectManager(netInterface string) *connectManager {
@@ -235,6 +263,7 @@ type connectManager struct {
 	context      *connectContext
 	deadTime     time.Time
 	NetInterface string
+	Interface    *wpa_dbus.InterfaceWPA
 }
 
 var (
